@@ -1,4 +1,6 @@
 import pygame
+import sys
+from random import randrange
 
 class Dot(pygame.sprite.Sprite):
     def __init__(self, width, height, x, y):
@@ -21,8 +23,8 @@ class Girl(pygame.sprite.Sprite):
         self.vel = 8
         self.isLeft = False
         self.isRight = False
+        self.jumpCount = 10
         self.isJump = False
-        self.jumpCount = 20
 
     def update(self): 
         if self.isLeft == True:
@@ -34,13 +36,13 @@ class Girl(pygame.sprite.Sprite):
             self.isRight = False
 
         if self.isJump == True:
-            if self.jumpCount >= -20:
-                self.rect.move_ip(0, -(self.jumpCount * abs(self.jumpCount)) * 0.3) #auto updates rect object
-                self.jumpCount -= 1
+            if self.jumpCount >= -10:
+                self.rect.centery -= (self.jumpCount * abs(self.jumpCount)) * 0.4
+                self.jumpCount -= 0.4
             else:
-                self.rect.move_ip(0, 0)
-                self.jumpCount = 20
-                self.isJump = False
+                self.rect.centery = 530
+                self.jumpCount = 10
+                self.isJump = False    
 
 class Background:
     def __init__(self, x):
@@ -67,12 +69,13 @@ class Game:
     def __init__(self) -> None:
         self.background = [Background(0), Background(WIDTH)]
         self.speed = 3
-        self.girl = Girl(150, 380, 275, 550)
-        self.girl_group = pygame.sprite.Group()
-        self.dot_group = pygame.sprite.Group()
-        self.girl_group.add(self.girl)
-        self.damage_score = 0 # num of collisions with dots
-        self.font = pygame.font.SysFont('Comic Sans MS', 30)
+        self.girl = Girl(150, 380, 275, 530)
+        self.girlGroup = pygame.sprite.Group()
+        self.dotGroup = pygame.sprite.Group()
+        self.girlGroup.add(self.girl)
+        self.damageScore = 0 # num of collisions with dots
+        self.scoreFont = pygame.font.SysFont('Menlo', 30)
+        self.titleFont = pygame.font.SysFont('Menlo', 150, bold = True)
 
 #general setup
 pygame.init()
@@ -84,35 +87,73 @@ HEIGHT = 800
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
 #song data
-data = [5.000, 7.000, 9.000, 11.000] #where the beats of the song hit in seconds
+#where the beats of the song hit in seconds
+data = [] 
+for i in range(30): #will be multiplied by 2 so 60 secs
+    seed = (randrange(0, 200))/100 #random float between 0-2
+    data.append(seed + (i * 1.5))   
+
+#create game object
+thisGame = Game()
+
+#start screen loop
+def start():
+    running = True
+
+    #music
+    pygame.mixer.music.load('audio/file_example.wav')
+    pygame.mixer.music.play(0)  
+    
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False    
+                sys.exit()
+
+        screen.fill("darkolivegreen3")
+
+        text_surface1 = thisGame.titleFont.render("Ritathm", True, (0, 0, 0))
+        text_surface2 = thisGame.scoreFont.render("Press s to start!", True, (0,0,0))
+
+
+        screen.blit(text_surface1, (320, 200))
+        screen.blit(text_surface2, (400, 400))
+        pygame.display.flip()
+        clock.tick(60)
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_s]:
+            s_time = pygame.time.get_ticks()/1000
+            return s_time
+        
 
 #game loop
-def main():
+def main(start_time):
     running = True
-    thisGame = Game()
-    l_time = 0
-
+    l_time = 0 
 
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+                sys.exit()
 
+    
         #background
         for bg in thisGame.background:
             bg.update(-thisGame.speed) #paralax effect
             bg.show()  #constructor only shows it once so we need to show it every time
 
         #score
-        text_surface = thisGame.font.render("Score:" + str(len(data) - thisGame.damage_score)+ " out of " + str(len(data)), False, (0, 0, 0))    
+        text_surface = thisGame.scoreFont.render("Score: " + str(len(data) - thisGame.damageScore)+ " out of " + str(len(data)), True, (0, 0, 0))    
 
-        # See if the Sprite block has collided with anything in the Group dot_group
+        # See if the Sprite block has collided with anything in the Group dotGroup
         # The True flag will remove the sprite in block_list
-        dot_group_hits = pygame.sprite.spritecollide(thisGame.girl, thisGame.dot_group, True)
+        dot_group_hits = pygame.sprite.spritecollide(thisGame.girl, thisGame.dotGroup, True)
 
         # Check the list of colliding sprites, and add one to the score for each one
         for hit in dot_group_hits:
-            thisGame.damage_score +=1    
+            thisGame.damageScore +=1    
 
         #player
         keys = pygame.key.get_pressed()
@@ -121,42 +162,42 @@ def main():
             if keys[pygame.K_SPACE]:
                 thisGame.girl.isJump = True
         else:
-            thisGame.girl_group.update()
+            thisGame.girlGroup.update()
 
         if keys[pygame.K_LEFT] and thisGame.girl.rect.centerx > thisGame.girl.vel:  # Making sure the top left position of our character is greater than our vel so we never move off the screen.
             thisGame.girl.isLeft = True
-            thisGame.girl_group.update()
+            thisGame.girlGroup.update()
 
         if keys[pygame.K_RIGHT] and thisGame.girl.rect.centerx <  WIDTH:  # Making sure the top right corner of our character is less than the screen width
             thisGame.girl.isRight = True
-            thisGame.girl_group.update()   
-
+            thisGame.girlGroup.update()   
 
         #dots
-        thisGame.dot_group.update()
+        thisGame.dotGroup.update()
 
-        print("current time:")
-        c_time = pygame.time.get_ticks()/1000
-        print(c_time)
-
-        print("last time:")
-        print(l_time)
-        print("-----------")
+        c_time = (pygame.time.get_ticks()/1000) - start_time
 
         for i in range(len(data)):
             if c_time >= data[i] and l_time < data[i]:
-                dot = Dot(80, 80, 1280, 600)
-                thisGame.dot_group.add(dot)
+                dot = Dot(80, 80, 1280, 590)
+                thisGame.dotGroup.add(dot)
 
         l_time = c_time
 
         #rendering
-        thisGame.dot_group.draw(screen)
-        thisGame.girl_group.draw(screen)
+        thisGame.dotGroup.draw(screen)
+        thisGame.girlGroup.draw(screen)
 
-        screen.blit(text_surface, (0,0))
+        screen.blit(text_surface, (5,5))
+
+        if c_time > (data[-1] + 5) :
+            #screen.fill("black") not doing anything anyway
+            pygame.time.set_timer(sys.exit(), 100000)
 
         pygame.display.update()
-        clock.tick(60)
-                
-main()
+        clock.tick(60)    
+
+start_time = start()                
+main(start_time)
+
+
