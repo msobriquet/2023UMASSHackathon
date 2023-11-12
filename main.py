@@ -1,49 +1,35 @@
 import pygame
 
 class Dot(pygame.sprite.Sprite):
-    def __init__(self, width, height, pos_x, pos_y):
+    def __init__(self, width, height, x, y):
         super().__init__()
         self.image = pygame.image.load('graphics/note.png').convert_alpha()
         self.image = pygame.transform.scale(self.image, (width, height)) #whatever size in here is the size of the rect
         self.rect = self.image.get_rect() #just draws a rect directly around it
-        self.rect.center = [pos_x, pos_y]
+        self.rect.center = [x, y]
 
     def update(self):
         self.rect.move_ip(-5, 0)
         
-class Girl:
-    def __init__(self, x, y) -> None:
-        self.width = 300
-        self.height = 300
-        self.x = x
-        self.y = y
+class Girl(pygame.sprite.Sprite):
+    def __init__(self, width, height, x, y) -> None: #if i need width and height attributes I can add them
+        super().__init__()
+        self.image = pygame.image.load('graphics/mc.png').convert_alpha()
+        self.image = pygame.transform.scale(self.image, (width, height)) 
+        self.rect = self.image.get_rect()
+        self.rect.center = [x, y]
         self.isJump = False
         self.jumpCount = 10
-        self.set_texture()
-        self.show()
 
-    def update(self, dx):
-        self.x += dx
-
-    def show(self):
-        screen.blit(self.texture, (self.x, self.y))
-        # self.rect = self.texture.get_rect(center = (self.x, self.y))
-        # screen.blit(self.texture, self.rect)
-
-    def set_texture(self):
-        self.texture = pygame.image.load('graphics/mc.png').convert_alpha()
-        self.texture = pygame.transform.scale(self.texture, (self.width, self.height))
-        #mc_rect = self.get_rect(center = (275, 550))
-
-    def jump(self):
-        if self.jumpCount >= -10:
-            print(self.jumpCount)
-            self.y -= (self.jumpCount * abs(self.jumpCount)) * 0.5
-            self.jumpCount -= 1
-        else:
-            self.y = 400
-            self.jumpCount = 10
-            self.isJump = False
+    def update(self): 
+        if self.isJump == True:
+            if self.jumpCount >= -10:
+                self.rect.move_ip(0, -(self.jumpCount * abs(self.jumpCount)) * 0.5) #auto updates rect object
+                self.jumpCount -= 1
+            else:
+                self.rect.move_ip(0, 0)
+                self.jumpCount = 10
+                self.isJump = False
 
 class Background:
     def __init__(self, x):
@@ -70,8 +56,10 @@ class Game:
     def __init__(self) -> None:
         self.background = [Background(0), Background(WIDTH)]
         self.speed = 3
-        self.girl = Girl(275,550)
+        self.girl = Girl(300, 300, 275, 550)
+        self.girl_group = pygame.sprite.Group()
         self.dot_group = pygame.sprite.Group()
+        self.girl_group.add(self.girl)
 
 #general setup
 pygame.init()
@@ -102,17 +90,14 @@ def main():
             bg.show()  #constructor only shows it once so we need to show it every time
 
         #player
-        thisGame.girl.show()
-
         keys = pygame.key.get_pressed()
 
         if not thisGame.girl.isJump:
             if keys[pygame.K_SPACE]:
                 thisGame.girl.isJump = True
         else:
-            thisGame.girl.jump()
+            thisGame.girl_group.update()
 
-        thisGame.girl.update(0)
 
         thisGame.dot_group.update()
 
@@ -132,6 +117,7 @@ def main():
         l_time = c_time
 
         thisGame.dot_group.draw(screen)
+        thisGame.girl_group.draw(screen)
 
         pygame.display.update()
         clock.tick(60)
