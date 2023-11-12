@@ -1,4 +1,5 @@
 import pygame
+from points import Points
 
 pygame.init()
 screen = pygame.display.set_mode((1280, 800))
@@ -13,6 +14,8 @@ mc_rect = mc_surf.get_rect(center = (275, 550))
 
 running = True
 mc_gravity = 0
+
+pt = Points()
 
 while running:
     for event in pygame.event.get():
@@ -32,11 +35,14 @@ while running:
     if keys[pygame.K_SPACE]:
        if mc_rect.y > 
         
+    #--- points ---
     
+    pt.show()
 
     pygame.display.flip()
     clock.tick(60)
                 
+
 
 
 #make player jump
